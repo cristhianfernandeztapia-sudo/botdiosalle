@@ -53,8 +53,7 @@ async def mensajes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif "quiero" in texto:
         await update.message.reply_text("Pide, amor… no tengas vergüenza… quiero darte TODO 😈💋")
     elif "llegaste" in texto:
-         await message.reply_text(
-        "¿Llegué? 😈\n"
+         await message.reply_text( "¿Llegué? 😈\n"
         "Sí… abrí la puerta y te vi ahí, esperándome como te gusta: con esa cara de deseo contenida y las ganas al borde de estallar...\n\n"
         "Mi perfume lo sabes de memoria, y aún así te atrapa cada vez…\n"
         "Paso lento, tacones marcando el ritmo de lo que viene… esa gotita de sudor bajando por tu cuello, ¿te das cuenta que ya estoy aquí?\n\n"
