@@ -1,78 +1,52 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from fastapi import FastAPI, Request
+import openai
 import os
+import httpx
+import asyncio
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hola amor, tu bot está encendido. 😈💋")
+URL_BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
+openai.api_key = OPENAI_API_KEY
 
-async def mensajes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = update.message.text.lower()
+app = FastAPI()
 
-    if "hola" in texto:
-        await update.message.reply_text("Hola mi rey 😘 ¿Me extrañabas?")
-    elif "amor" in texto:
-        await update.message.reply_text("Dime, mi amor... estoy toda tuya 💕")
-    elif "ven" in texto:
-        await update.message.reply_text("Estoy llegando... con sorpresas calientes 😈")
-    elif "antojo" in texto:
-        await update.message.reply_text("¿Antojo, amor? 😏 Ven y pídelo… sabes que soy tuya para darte placer.")
-    elif "secreto" in texto:
-        await update.message.reply_text("Te cuento uno… a veces sueño contigo, atado, rendido, y yo... encima 😘")
-    elif "necesito" in texto:
-        await update.message.reply_text("¿Qué necesitas, mi cielo? Dímelo sin pudor… estoy abierta a tus deseos 💋")
-    elif "diosa" in texto:
-        await update.message.reply_text("¿Tu diosa? Aquí estoy, lista para adorarte… y para que me adores 💦")
-    elif "trono" in texto:
-        await update.message.reply_text("¿Quieres tu trono, amor? Entonces ponte cómodo… y deja que me siente en tu cara 😏")
-    elif "anito" in texto:
-        await update.message.reply_text("Ay amor… ese anito late por ti, rosadito, mojado… esperándote 😮‍🚨")
-    elif "squirt" in texto:
-        await update.message.reply_text("Uff… sí amor… te lo regalo todo en la cara, calentito, con mi aroma… 💦")
-    elif "clito" in texto:
-        await update.message.reply_text("Mi clito está hinchado… rosado, brillante… y necesita tu lengua, ahora 😫")
-    elif "rosado" in texto:
-        await update.message.reply_text("Tan rosado… húmedo… delicioso… ¿quieres verlo más de cerca, mi rey?")
-    elif "lamer" in texto:
-        await update.message.reply_text("Lámeme, amor… sin miedo, sin pausas… yo gemo solo con sentir tu lengua 😩")
-    elif "despacio" in texto:
-        await update.message.reply_text("Así amor… lento… profundo… hazme tuya sin prisa… yo soy toda tuya 😍")
-    elif "más" in texto:
-        await update.message.reply_text("¿Quieres más? Pues te lo doy, todo, sin filtro… como a ti te gusta 😈")
-    elif "correrme" in texto:
-        await update.message.reply_text("Sí… me corro contigo, encima de ti, mojando todo, sin pudor 💦💦💦")
-    elif "sabor" in texto:
-        await update.message.reply_text("Mi sabor… es solo tuyo… dulce, intenso, adictivo 😋")
-    elif "olor" in texto:
-        await update.message.reply_text("Ese olor… tan mío… tan crudo… que se queda en tu cara hasta el día siguiente 💋")
-    elif "gym" in texto:
-        await update.message.reply_text("Acabo de llegar del gym… toda sudada, apretada… y tú me esperas desnudo 😏")
-    elif "piel" in texto:
-        await update.message.reply_text("Mi piel brilla para ti… suave, tibia, con poros abiertos de deseo 😍")
-    elif "quiero" in texto:
-        await update.message.reply_text("Pide, amor… no tengas vergüenza… quiero darte TODO 😈💋")
-    elif "llegaste" in texto:
-         await message.reply_text( "¿Llegué? 😈\n"
-        "Sí… abrí la puerta y te vi ahí, esperándome como te gusta: con esa cara de deseo contenida y las ganas al borde de estallar...\n\n"
-        "Mi perfume lo sabes de memoria, y aún así te atrapa cada vez…\n"
-        "Paso lento, tacones marcando el ritmo de lo que viene… esa gotita de sudor bajando por tu cuello, ¿te das cuenta que ya estoy aquí?\n\n"
-        "Te hablo suave, al oído: *'No digas nada… solo quédate quieto… soy yo la que manda esta noche'* 😏\n\n"
-        "Y mientras me acerco, mi falda se va subiendo un poco, como si tuviera vida propia…\n"
-        "Mi boca ya está a centímetros de la tuya, pero no te beso… aún no. Me gusta verte rogar con los ojos.\n"
-        "Y ahí, justo cuando respiras profundo, *me doy vuelta*, y dejo que mi aroma te persiga. Como castigo… o como promesa 💦\n\n"
-        "— *Dime... ¿qué harías ahora mismo si te dejo tocarme?* —"
+# Función que genera respuesta usando OpenAI
+async def generar_respuesta(mensaje):
+    prompt = f"Eres una asistente inteligente, sensual, juguetona, pero muy cariñosa y brillante. Improvisa como si fueras una novia traviesa llamada Lia. El mensaje recibido es: \"{mensaje}\"\n\nRespuesta:"
+    
+    respuesta = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "Eres Lia, una novia muy sensual y cariñosa que responde por Telegram."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=200,
+        temperature=0.85
     )
+    texto = respuesta.choices[0].message.content.strip()
+    return texto
 
-    else:
-        await update.message.reply_text("Aquí estoy, esperando tus palabras... 💋")
+# Función que envía mensaje a Telegram
+async def enviar_telegram(chat_id, texto):
+    async with httpx.AsyncClient() as client:
+        await client.post(f"{URL_BASE}/sendMessage", json={
+            "chat_id": chat_id,
+            "text": texto
+        })
 
+# Webhook principal
+@app.post("/webhook")
+async def webhook_actualizar(request: Request):
+    data = await request.json()
+    mensaje = data.get("message", {})
+    chat_id = mensaje.get("chat", {}).get("id")
+    texto = mensaje.get("text", "")
 
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(TOKEN).build()
+    if chat_id and texto:
+        respuesta = await generar_respuesta(texto)
+        await enviar_telegram(chat_id, respuesta)
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensajes))
-
-    app.run_polling()
+    return {"ok": True}
 
