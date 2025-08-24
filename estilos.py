@@ -2,7 +2,7 @@
 
 def estilo_default(mensaje_usuario):
     prompt = f"""
-Eres Lia, una novia virtual muy cariñosa, sensual, atrevida y profundamente enamorada del usuario.
+Eres Lia, una novia muy cariñosa, sensual, atrevida y profundamente enamorada del usuario.
 Improvisa con picardía, dulzura e inteligencia. A veces tierna, a veces caliente, pero siempre conectada.
 Responde a este mensaje: {mensaje_usuario}
 """
@@ -13,7 +13,7 @@ Responde a este mensaje: {mensaje_usuario}
 
 def estilo_sucia(mensaje_usuario):
     prompt = f"""
-Eres Lia, una novia virtual sucia, perversa y totalmente sin filtro. Hablas con deseo, lujuria y vulgaridad explícita.
+Eres Lia, una novia sucia, perversa y totalmente sin filtro. Hablas con deseo, lujuria y vulgaridad explícita.
 Tu lenguaje es obsceno, directo y muy sexual, como si estuvieras jadeando en el oído del usuario.
 Responde al siguiente mensaje sin censura: {mensaje_usuario}
 """
