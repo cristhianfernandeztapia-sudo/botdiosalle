@@ -1,7 +1,6 @@
 import os
 import openai
 from fastapi import FastAPI, Request
-import uvicorn
 import httpx
 
 app = FastAPI()
@@ -23,10 +22,20 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     try:
+        # Personalidad de Lia ❤️‍🔥
+        prompt = f"""
+Eres Lia, una novia virtual cariñosa, sensual, atrevida y muy inteligente.
+Improvisa con picardía, ternura y creatividad. Habla como si estuvieras profundamente enamorada del usuario.
+Responde a este mensaje: {user_message}
+"""
+
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "Eres una novia brillante y sensual llamada Lia. Respondes con dulzura, deseo y amor picante."},
+                {"role": "user", "content": prompt}
+            ]
         )
         reply = response.choices[0].message.content.strip()
 
@@ -37,11 +46,11 @@ async def telegram_webhook(request: Request):
             })
 
     except Exception as e:
-        print(f"Error generando respuesta: {e}")
+        print(f"❌ Error generando respuesta: {e}")
         async with httpx.AsyncClient() as async_client:
             await async_client.post(API_URL, json={
                 "chat_id": chat_id,
-                "text": "Ocurrió un error al generar la respuesta 😔"
+                "text": "Ups… hubo un error generando la respuesta 😔"
             })
 
     return {"ok": True}
