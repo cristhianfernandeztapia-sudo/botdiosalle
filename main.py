@@ -44,4 +44,4 @@ async def telegram_webhook(request: Request):
                 "text": "Ocurrió un error al generar la respuesta 😔"
             })
 
-    return {"ok": True"}
+    return {"ok": True}
