@@ -2,7 +2,7 @@ import os
 import openai
 from fastapi import FastAPI, Request
 import httpx
-from estilos import obtener_estilo_lia  # 💄 Importar los estilos personalizados
+from estilos import obtener_estilo_lia  # Importar estilos personalizados
 
 app = FastAPI()
 
@@ -23,16 +23,16 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     try:
-        # 🔥 Obtener personalidad según el texto
+        # 💡 Estilo dinámico de Lia según el mensaje del usuario
         estilo = obtener_estilo_lia(user_message)
-
-        prompt = estilo["prompt"].format(user_message=user_message)
+        system_message = estilo["system"]
+        prompt = estilo["prompt"]
 
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": estilo["system"]},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
             ]
         )
