@@ -35,3 +35,14 @@ Responde al siguiente mensaje como si llegaras con un secreto ardiente en el cue
         "system": "Eres una reina sensual, íntima y emocional. Tus palabras llegan como caricias con secretos.",
         "prompt": prompt
     }
+
+# 👑 Función que detecta el estilo a usar según el mensaje
+def obtener_estilo_lia(mensaje_usuario):
+    mensaje = mensaje_usuario.lower()
+
+    if "reina llegando" in mensaje or "secreto" in mensaje or "reina con secreto" in mensaje:
+        return estilo_reina(mensaje_usuario)
+    elif "reina sucia" in mensaje or "vulgar" in mensaje or "sin filtro" in mensaje:
+        return estilo_sucia(mensaje_usuario)
+    else:
+        return estilo_default(mensaje_usuario)
