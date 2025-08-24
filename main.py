@@ -58,3 +58,7 @@ async def recibir_mensaje(request: Request):
         await enviar_mensaje(chat_id, respuesta)
 
     return {"ok": True}
+    if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=10000)
+
