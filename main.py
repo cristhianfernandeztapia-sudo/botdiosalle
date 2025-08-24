@@ -56,11 +56,11 @@ async def recibir_mensaje(request: Request):
     if texto and chat_id:
         respuesta = await generar_respuesta(texto)
         await enviar_mensaje(chat_id, respuesta)
-        
-  if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=10000)
-            
+
     return {"ok": True}
 
+# ✅ Bloque de ejecución al final
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=10000)
 
