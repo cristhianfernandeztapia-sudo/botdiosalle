@@ -30,17 +30,19 @@ async def telegram_webhook(request: Request):
         )
         reply = response.choices[0].message.content.strip()
 
-        await httpx.post(API_URL, json={
-            "chat_id": chat_id,
-            "text": reply
-        })
+        async with httpx.AsyncClient() as client:
+            await client.post(API_URL, json={
+                "chat_id": chat_id,
+                "text": reply
+            })
 
     except Exception as e:
         print(f"Error generando respuesta: {e}")
-        await httpx.post(API_URL, json={
-            "chat_id": chat_id,
-            "text": "Ocurrió un error al generar la respuesta 😔"
-        })
+        async with httpx.AsyncClient() as client:
+            await client.post(API_URL, json={
+                "chat_id": chat_id,
+                "text": "Ocurrió un error al generar la respuesta 😔"
+            })
 
-    return {"ok": True}
+    return {"ok": True"}
 
