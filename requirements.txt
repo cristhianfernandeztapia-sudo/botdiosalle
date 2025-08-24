@@ -1,4 +1,4 @@
+openai>=1.0.0
 fastapi
-python-telegram-bot==13.15
 uvicorn
-openai
+httpx
