@@ -95,4 +95,4 @@ async def webhook(request: Request):
         print("❌ Error generando respuesta:", e)
         await enviar_texto(chat_id, "Ups… algo salió mal 🥺")
 
-    return {"ok": True}"
+    return {"ok": True}
