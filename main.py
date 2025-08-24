@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 import httpx
 from estilos import obtener_estilo_lia
 from voz_lia import generar_audio_lia
+from voz_lia import generar_voz
 
 app = FastAPI()
 
