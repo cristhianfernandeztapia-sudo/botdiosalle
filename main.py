@@ -1,98 +1,67 @@
 import os
+import openai
 from fastapi import FastAPI, Request
 import httpx
-import openai
 from estilos import obtener_estilo_lia
+from voz_lia import generar_audio_lia
 
 app = FastAPI()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-
 openai.api_key = OPENAI_API_KEY
 
-# ✨ Enviar mensaje de texto
-async def enviar_texto(chat_id, texto):
-    await httpx.AsyncClient().post(f"{API_URL}/sendMessage", json={
-        "chat_id": chat_id,
-        "text": texto
-    })
-
-# ✨ Enviar imagen generada por DALL·E
-async def enviar_imagen(chat_id, prompt):
-    try:
-        response = openai.images.generate(
-            model="dall-e-3",
-            prompt=prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1
-        )
-        image_url = response.data[0].url
-        await httpx.AsyncClient().post(f"{API_URL}/sendPhoto", json={
-            "chat_id": chat_id,
-            "photo": image_url
-        })
-    except Exception as e:
-        print("❌ Error generando imagen:", e)
-        await enviar_texto(chat_id, "No pude generar la imagen amor 😢")
-
-# ✨ Enviar voz (audio sensual de Lia)
-async def enviar_audio(chat_id, texto):
-    try:
-        audio_response = openai.audio.speech.create(
-            model="tts-1",
-            voice="nova",
-            input=texto
-        )
-        audio_path = "/tmp/audio.mp3"
-        with open(audio_path, "wb") as f:
-            f.write(audio_response.read())
-
-        with open(audio_path, "rb") as f:
-            files = {'voice': f}
-            data = {'chat_id': chat_id}
-            await httpx.AsyncClient().post(f"{API_URL}/sendVoice", data=data, files=files)
-
-    except Exception as e:
-        print("❌ Error generando audio:", e)
-        await enviar_texto(chat_id, "No pude hablar amor 😥")
+API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+SEND_MSG_URL = f"{API_URL}/sendMessage"
+SEND_AUDIO_URL = f"{API_URL}/sendVoice"
 
 @app.post("/")
-async def webhook(request: Request):
+async def telegram_webhook(request: Request):
     data = await request.json()
     message = data.get("message", {})
     chat_id = message.get("chat", {}).get("id")
-    texto_usuario = message.get("text", "")
+    user_message = message.get("text", "")
 
-    if not chat_id or not texto_usuario:
-        return {"ok": True}
-
-    if texto_usuario.lower().startswith("imagen:"):
-        prompt = texto_usuario[7:].strip()
-        await enviar_imagen(chat_id, prompt)
+    if not chat_id or not user_message:
         return {"ok": True}
 
     try:
-        estilo = obtener_estilo_lia(texto_usuario)
-        system_msg = estilo["system"]
+        # 🔥 Estilo dinámico según el mensaje
+        estilo = obtener_estilo_lia(user_message)
+        system_message = estilo["system"]
         prompt = estilo["prompt"]
 
-        response = openai.chat.completions.create(
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": system_msg},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
             ]
         )
-        respuesta = response.choices[0].message.content.strip()
+        reply = response.choices[0].message.content.strip()
 
-        await enviar_texto(chat_id, respuesta)
-        await enviar_audio(chat_id, respuesta)
+        # Enviar respuesta escrita
+        async with httpx.AsyncClient() as async_client:
+            await async_client.post(SEND_MSG_URL, json={
+                "chat_id": chat_id,
+                "text": reply
+            })
+
+        # 🎤 Generar audio con voz sensual
+        audio_path = generar_audio_lia(reply)
+        if audio_path:
+            with open(audio_path, "rb") as audio_file:
+                files = {"voice": audio_file}
+                data = {"chat_id": chat_id}
+                await async_client.post(SEND_AUDIO_URL, data=data, files=files)
 
     except Exception as e:
-        print("❌ Error generando respuesta:", e)
-        await enviar_texto(chat_id, "Ups… algo salió mal 🥺")
+        print(f"❌ Error generando respuesta: {e}")
+        async with httpx.AsyncClient() as async_client:
+            await async_client.post(SEND_MSG_URL, json={
+                "chat_id": chat_id,
+                "text": "Ups… hubo un error generando la respuesta 😔"
+            })
 
     return {"ok": True}
