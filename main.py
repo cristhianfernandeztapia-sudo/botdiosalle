@@ -3,7 +3,7 @@ import openai
 from fastapi import FastAPI, Request
 import httpx
 from estilos import obtener_estilo_lia
-from voz_lia import generar_audio_lia
+from voz_lia import generar_voz  # ✅ Corrección aquí
 from conversacion_lia import generar_respuesta_continua  # 💡 NUEVO
 
 app = FastAPI()
@@ -43,7 +43,7 @@ async def telegram_webhook(request: Request):
             })
 
         # 🎤 Generar audio con voz sensual
-        audio_path = generar_audio_lia(reply)
+        audio_path = generar_voz(reply)  # ✅ Corrección aquí
         if audio_path:
             with open(audio_path, "rb") as audio_file:
                 files = {"voice": audio_file}
