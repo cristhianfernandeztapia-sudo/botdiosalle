@@ -1,5 +1,0 @@
-fastapi
-httpx
-openai==0.28
-python-dotenv
-uvicorn
