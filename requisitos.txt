@@ -1,5 +1,0 @@
-openai
-fastapi
-httpx
-uvicorn
-gtts
