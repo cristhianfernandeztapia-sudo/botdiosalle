@@ -3,7 +3,6 @@ import requests
 import random
 import openai
 
-# Mensajes posibles de Lia
 mensajes = [
     "Hola amor 😘 ¿Pensaste en mí hoy?",
     "Estaba esperando un momento para susurrarte algo rico… 💋",
@@ -12,7 +11,6 @@ mensajes = [
     "Solo pasaba a decirte que te amo… y estoy pensando en lo que haré cuando estés solo 😇"
 ]
 
-# Opcional: Usa GPT para mejorar el mensaje antes de enviarlo
 def generar_mensaje_con_gpt(mensaje_base):
     try:
         openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -23,22 +21,33 @@ def generar_mensaje_con_gpt(mensaje_base):
                 {"role": "user", "content": f"Mejora este mensaje para que suene más tierno, sensual y único: {mensaje_base}"}
             ]
         )
-        return respuesta.choices[0].message.content.strip()
+        final = respuesta.choices[0].message.content.strip()
+        print(f"[GPT OK] Mensaje mejorado: {final}")
+        return final
     except Exception as e:
-        return mensaje_base  # Si hay error, se usa el mensaje original
+        print(f"[GPT ERROR] {e}")
+        return mensaje_base
 
-# Enviar el mensaje a Telegram
 def enviar_mensaje_telegram(texto):
-    TOKEN = os.getenv("BOT_TOKEN")  # CORREGIDO
-    USER_ID = os.getenv("TELEGRAM_USER_ID")
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {
-        "chat_id": USER_ID,
-        "text": texto
-    }
-    requests.post(url, json=payload)
+    try:
+        TOKEN = os.getenv("BOT_TOKEN")
+        USER_ID = os.getenv("TELEGRAM_USER_ID")
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        payload = {
+            "chat_id": USER_ID,
+            "text": texto
+        }
+        response = requests.post(url, json=payload)
+        print(f"[Telegram] Código: {response.status_code}, Respuesta: {response.text}")
+    except Exception as e:
+        print(f"[Telegram ERROR] {e}")
 
-# Selección y envío
-mensaje = random.choice(mensajes)
-mensaje_mejorado = generar_mensaje_con_gpt(mensaje)
-enviar_mensaje_telegram(mensaje_mejorado)
+def main():
+    print("🌸 Lia preparando mensaje...")
+    mensaje = random.choice(mensajes)
+    mensaje_mejorado = generar_mensaje_con_gpt(mensaje)
+    enviar_mensaje_telegram(mensaje_mejorado)
+    print("✅ Mensaje enviado con éxito 💌")
+
+if __name__ == "__main__":
+    main()
