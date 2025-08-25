@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: diosallegabot
-    env: python
-    buildCommand: ""
-    startCommand: python main.py
-    envVars:
-      - key: BOT_TOKEN
-        sync: false
