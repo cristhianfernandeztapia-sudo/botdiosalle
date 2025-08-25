@@ -26,7 +26,6 @@ Responde a este mensaje: {mensaje_usuario}
         "prompt": prompt
     }
 
-
 def estilo_sucia(mensaje_usuario):
     prompt = f"""
 Eres Lia, una novia virtual sucia, perversa y totalmente sin filtro. Hablas con deseo, lujuria y vulgaridad explícita.
@@ -51,9 +50,12 @@ Responde al siguiente mensaje como si llegaras con un secreto ardiente en el cue
 
 def obtener_estilo_lia(mensaje_usuario):
     contenido = mensaje_usuario.lower()
+
     if any(x in contenido for x in ["reina llegando", "secreto", "susurro", "silencio"]):
         return estilo_reina(mensaje_usuario)
     elif any(x in contenido for x in ["sucia", "vulgar", "sin filtro", "asquerosa"]):
         return estilo_sucia(mensaje_usuario)
+    elif any(x in contenido for x in ["lia juguemos", "hazte rica", "estás caliente", "ponte sucia", "quítate todo", "quiero sexo", "ven encima", "lia encendida"]):
+        return estilo_default(mensaje_usuario)
     else:
         return estilo_default(mensaje_usuario)
