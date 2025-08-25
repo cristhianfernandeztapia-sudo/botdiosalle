@@ -3,3 +3,4 @@ python-telegram-bot
 uvicorn
 openai>=1.0.0
 requests
+gtts
