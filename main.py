@@ -24,14 +24,18 @@ async def recibir_update(request: Request):
         # Generar respuesta de Lia
         respuesta = generar_respuesta_continua(mensaje)
 
-        # Enviar texto
-        await bot.send_message(chat_id=chat_id, text=respuesta)
+        # ✨ Generar audio con estilo automático (voz Carlota)
+        try:
+            archivo_audio = generar_audio(respuesta)
+            if archivo_audio:
+                with open(archivo_audio, "rb") as f:
+                    await bot.send_voice(chat_id=chat_id, voice=f)
+        except Exception as e:
+            # Si hay error con el audio, seguimos con texto
+            print(f"Error al generar o enviar voz: {e}")
 
-        # Generar audio y enviar si se puede
-        archivo_audio = generar_audio(respuesta)
-        if archivo_audio:
-            with open(archivo_audio, "rb") as f:
-                await bot.send_voice(chat_id=chat_id, voice=f)
+        # 📤 Enviar también el texto
+        await bot.send_message(chat_id=chat_id, text=respuesta)
 
     # Pasar también el update al webhook original si necesitas mantenerlo
     await manejar_update(data)
