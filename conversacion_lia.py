@@ -15,7 +15,7 @@ def generar_respuesta_continua(prompt):
             frequency_penalty=0.4,
             presence_penalty=0.6
         )
-        return respuesta.choices[0].message["content"].strip()
+        return respuesta["choices"][0]["message"]["content"].strip()
 
     except Exception as e:
         print(f"❌ Error generando respuesta continua: {e}")
