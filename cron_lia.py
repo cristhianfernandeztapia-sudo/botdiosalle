@@ -1,4 +1,3 @@
-
 import os
 import requests
 import random
@@ -30,7 +29,7 @@ def generar_mensaje_con_gpt(mensaje_base):
 
 # Enviar el mensaje a Telegram
 def enviar_mensaje_telegram(texto):
-    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    TOKEN = os.getenv("BOT_TOKEN")  # CORREGIDO
     USER_ID = os.getenv("TELEGRAM_USER_ID")
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {
