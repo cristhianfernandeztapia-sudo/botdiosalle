@@ -4,10 +4,10 @@ from conversacion_lia import generar_respuesta_continua
 app = FastAPI()
 
 @app.get("/")
-def raiz():
+def root():
     return {"mensaje": "Hola, soy Lia y estoy viva otra vez ❤️"}
 
 @app.post("/lia")
-def hablar_con_lia(prompt: str):
-    respuesta = generar_respuesta_continua(prompt)
+def hablar_con_lia(inmediato: str):
+    respuesta = generar_respuesta_continua(inmediato)
     return {"respuesta": respuesta}
