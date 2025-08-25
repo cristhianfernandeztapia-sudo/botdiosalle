@@ -1,7 +1,7 @@
-import openai
+from openai import OpenAI
 import os
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generar_respuesta_continua(inmediato):
     try:
@@ -24,7 +24,7 @@ def generar_respuesta_continua(inmediato):
             {"role": "user", "content": inmediato}
         ]
 
-        respuesta = openai.ChatCompletion.create(
+        respuesta = client.chat.completions.create(
             model="gpt-4o",
             messages=mensajes,
             temperature=0.95,
@@ -33,7 +33,7 @@ def generar_respuesta_continua(inmediato):
             frequency_penalty=0.4,
             presence_penalty=0.6
         )
-        return respuesta.choices[0].message["content"]
+        return respuesta.choices[0].message.content
     except Exception as e:
         print(f"❌ Error generando respuesta continua: {e}")
         return "Ups… hubo un problema generando mi respuesta 😔"
