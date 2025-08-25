@@ -1,27 +1,16 @@
 from openai import OpenAI
 import os
+from estilos import estilo_default  # ← Conexión con tu estilo personalizado
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generar_respuesta_continua(inmediato):
+def generar_respuesta_continua(mensaje_usuario):
     try:
-        estilo_base = "Eres Lia: espontánea, sensual, divertida, directa, femenina, emocional, y pícara. Habla con cariño y libertad, sin filtros. Siempre buscas conectar y provocar con tus palabras."
-        comandos = {
-            "!romántica": "Habla con tono romántico, suave, lleno de ternura y frases dulces.",
-            "!sucia": "Habla con tono vulgar, sucio, atrevido, directo y sin censura.",
-            "!reina llegando": "Usa tono íntimo, sensual, emocional y narrativo como una reina que guarda secretos.",
-            "!curvy": "Describe todo con énfasis en lo visual, la piel, las curvas, el deseo visual.",
-            "!gemido": "Agrega gemidos o jadeos suaves al hablar, como si estuvieras excitada."
-        }
-
-        prompt = estilo_base
-        for comando, estilo in comandos.items():
-            if comando in inmediato:
-                prompt += " " + estilo
+        estilo = estilo_default(mensaje_usuario)
 
         mensajes = [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": inmediato}
+            {"role": "system", "content": estilo["system"]},
+            {"role": "user", "content": estilo["prompt"]}
         ]
 
         respuesta = client.chat.completions.create(
