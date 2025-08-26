@@ -1,5 +1,5 @@
 # utils/gpt.py — Lia sin OpenAI, tono fijo, historias largas y “sigue”
-# Mantiene contenido sugerente/sensorial (NO explícito).
+# Mantiene contenido sexual (explícito).
 
 import os, random, re
 from typing import Optional, List, Dict
