@@ -5,6 +5,7 @@ from voz_lia import generar_audio
 
 from telegram import Bot
 import os
+import traceback
 
 app = FastAPI()
 
@@ -17,28 +18,40 @@ async def recibir_update(request: Request):
     data = await request.json()
 
     # Extraer info básica del mensaje
-    mensaje = data.get("message", {}).get("text")
+    mensaje = data.get("message", {}).get("text", "")
     chat_id = data.get("message", {}).get("chat", {}).get("id")
 
-    if mensaje and chat_id:
-        # Generar respuesta de Lia
-        respuesta = generar_respuesta_continua(mensaje)
+    # Si no hay chat_id o mensaje, ignoramos
+    if not chat_id or not isinstance(mensaje, str):
+        return {"status": "ignored"}
 
-        # ✨ Generar audio con estilo automático (voz Carlota)
-        try:
-            archivo_audio = generar_audio(respuesta)
-            if archivo_audio:
-                with open(archivo_audio, "rb") as f:
-                    await bot.send_voice(chat_id=chat_id, voice=f)
-        except Exception as e:
-            # Si hay error con el audio, seguimos con texto
-            print(f"Error al generar o enviar voz: {e}")
+    # 1) Generar respuesta de Lia
+    respuesta = generar_respuesta_continua(mensaje)
 
-        # 📤 Enviar también el texto
+    # 2) Enviar SIEMPRE el texto primero
+    try:
         await bot.send_message(chat_id=chat_id, text=respuesta)
+    except Exception as e:
+        print(f"⚠️ Error enviando texto: {e}")
 
-    # Pasar también el update al webhook original si necesitas mantenerlo
-    await manejar_update(data)
+    # 3) Intentar la voz SIN bloquear la respuesta
+    try:
+        archivo_audio = generar_audio(respuesta)
+        if archivo_audio:
+            with open(archivo_audio, "rb") as f:
+                await bot.send_voice(chat_id=chat_id, voice=f)
+        else:
+            print("⚠️ generar_audio() no devolvió archivo.")
+    except Exception as e:
+        print("⚠️ Error al generar o enviar voz:")
+        print(traceback.format_exc())
+
+    # 4) Pasar también el update al webhook original, si lo necesitas
+    try:
+        await manejar_update(data)
+    except Exception as e:
+        print(f"ℹ️ manejar_update lanzó excepción (no crítico): {e}")
+
     return {"status": "ok"}
 
 @app.get("/")
