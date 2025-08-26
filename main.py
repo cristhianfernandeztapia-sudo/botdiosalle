@@ -15,9 +15,9 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # Afinado (opcionales)
-LIA_TEMP = float(os.getenv("LIA_TEMP", "1.05"))
-LIA_TOP_P = float(os.getenv("LIA_TOP_P", "0.92"))
-LIA_MAX_TOKENS = int(os.getenv("LIA_MAX_TOKENS", "600"))
+LIA_TEMP = float(os.getenv("LIA_TEMP", "1.10"))
+LIA_TOP_P = float(os.getenv("LIA_TOP_P", "0.95"))
+LIA_MAX_TOKENS = int(os.getenv("LIA_MAX_TOKENS", "900"))
 
 log = get_logger("main")
 app = FastAPI(title="BotLia")
