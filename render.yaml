@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: botlia
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: SEND_AUDIO
+        value: "false"
+      - key: ELEVEN_API_KEY
+        sync: false
+      - key: ELEVEN_VOICE_ID
+        value: XB0fDUnXU5powFXDhCwa
+      - key: ELEVEN_MODEL_ID
+        value: eleven_multilingual_v2
+
+  - type: cron
+    name: lia-cron
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python cron_lia.py
+    schedule: "*/30 * * * *"   # cada 30 minutos
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_USER_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: CRON_SEND_AUDIO
+        value: "false"
+      - key: ELEVEN_API_KEY
+        sync: false
+      - key: ELEVEN_VOICE_ID
+        value: XB0fDUnXU5powFXDhCwa
+      - key: ELEVEN_MODEL_ID
+        value: eleven_multilingual_v2
