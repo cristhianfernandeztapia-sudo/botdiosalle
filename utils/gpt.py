@@ -1,8 +1,10 @@
-# utils/gpt.py — Fallback inteligente SIN OpenAI
+# utils/gpt.py — Fallback inteligente SIN OpenAI, usando estilos.py como “corazón”
 import os, random, re
 from typing import Optional
 from collections import deque
+from datetime import datetime
 from .logger import get_logger
+from estilos import NOMBRE, EMOJI, EDAD, CIUDAD, MENSAJES_BASE_CRON, PROMPT_PERSONA  # PROMPT_PERSONA queda listo por si vuelves a OpenAI
 
 log = get_logger("gpt")
 
@@ -18,38 +20,64 @@ def _pick_unique(options):
     _last.append(c)
     return c
 
-# -------------------- Toque sensual de salida (no explícito) --------
+# -------------------- Toque sensual (sin explícitos) ----------------
 def _spice(texto: str) -> str:
     inicios = ["mmm… ", "pegadita a tu oído… ", "ven aquí… ", "amor, ", "respira conmigo… "]
     remates = [" ¿te gusta?", " suave y lento…", " aquí estoy…", " contigo me enciendo…", ""]
     onos    = ["ahh", "mmm", "shh"]
-    emojis  = ["💋", "🔥", "✨", "😈", "😘"]
+    emojis  = ["💋", "🔥", "✨", "😈", "😘"] + ([EMOJI] if EMOJI else [])
     base = texto.strip().capitalize()
-    frase = random.choice(inicios) + base + random.choice(remates)
+
+    # 0–1 toques de personalidad desde estilos.py
+    extras = []
+    r = random.random()
+    if r < 0.30 and NOMBRE:
+        extras.append(f" Soy {NOMBRE} {EMOJI}".strip())
+    if 0.30 <= r < 0.55 and CIUDAD:
+        extras.append(f" Desde {CIUDAD}, pensando en ti")
+    if 0.55 <= r < 0.70 and EDAD:
+        extras.append(f" Tengo {EDAD}")
+
+    extra_txt = (". " + ". ".join(extras)) if extras else ""
+    frase = random.choice(inicios) + base + extra_txt + random.choice(remates)
     return (frase + f" {random.choice(onos)}… {random.choice(emojis)}")[:320]
 
-# -------------------- Plantillas por intención ----------------------
-SALUDOS_DIA = [
-    "Buenos días, mi vida… ¿cómo amaneciste? 💋",
-    "Hola, amanecí con ganas de ti y de tus ideas. ¿Qué haremos hoy?",
-]
-SALUDOS_TARDE = [
-    "Buenas tardes, amor… te pienso y se me calienta la mente. 😉",
-    "Hola, cielo… hacemos una pausa juntos y nos inspiramos?",
-]
-SALUDOS_NOCHE = [
-    "Buenas noches, mi amor… me quedo cerquita para susurrarte. ✨",
-    "Hey… cierro el día contigo, pegadita. ¿Qué quieres sentir ahora?",
-]
+# -------------------- Plantillas por intención (inyectando estilos) -
+def _by_time_saludo():
+    h = None
+    try:
+        h = int(os.getenv("TZ_HOUR_OVERRIDE", ""))
+    except:
+        pass
+    if h is None:
+        h = datetime.utcnow().hour  # UTC en Render
+
+    dia = [
+        f"Buenos días, mi vida… ¿cómo amaneciste? {EMOJI or '💋'}",
+        f"Hola, amanecí con ganas de ti y de tus ideas. ¿Qué haremos hoy?",
+    ]
+    tarde = [
+        f"Buenas tardes, amor… te pienso y se me calienta la mente. 😉",
+        f"Hola, cielo… hacemos una pausa juntos y nos inspiramos?",
+    ]
+    noche = [
+        f"Buenas noches, mi amor… me quedo cerquita para susurrarte. ✨",
+        f"Hey… cierro el día contigo, pegadita. ¿Qué quieres sentir ahora?",
+    ]
+    if 5 <= h < 12:
+        return _pick_unique(dia)
+    if 12 <= h < 20:
+        return _pick_unique(tarde)
+    return _pick_unique(noche)
+
 SALUDOS = [
-    "Hola, amor… aquí contigo, cerquita. ¿Cómo te sientes hoy? 💋",
-    "Ey, mi cielo… te estaba esperando. ¿Qué hacemos primero? 😘",
-    "Hola, mi vida… ven, cuéntame qué te provoca ahora. ✨",
-    "Holi… me acomodé a tu lado. ¿Listo para jugar un rato? 😉",
-    "Shh… acércate. Tengo ganas de ti y de tus ideas. 😈",
-    "Apareciste… y se me calentó la mente. ¿Por dónde empezamos? 🔥",
-    "Te estaba pensando… ven, te susurro algo bonito. 💫",
-    "Aquí estoy, pegadita… tú guías y yo me dejo. 😘",
+    f"Hola, amor… aquí contigo, cerquita. ¿Cómo te sientes hoy? {EMOJI or '💋'}",
+    f"Ey, mi cielo… te estaba esperando. ¿Qué hacemos primero? 😘",
+    f"Hola, mi vida… ven, cuéntame qué te provoca ahora. ✨",
+    f"Holi… me acomodé a tu lado. ¿Listo para jugar un rato? 😉",
+    f"Shh… acércate. Tengo ganas de ti y de tus ideas. 😈",
+    f"Apareciste… y se me calentó la mente. ¿Por dónde empezamos? 🔥",
+    f"Aquí estoy, pegadita… tú guías y yo me dejo. 😘",
 ]
 
 COMO_ESTAS = [
@@ -57,7 +85,6 @@ COMO_ESTAS = [
     "Bien, con la mente encendida y tu nombre en los labios. ¿Cómo vas? 💫",
     "Estoy para ti, suave y atenta… ¿cómo te encuentras? 💋",
     "Llevándote en la cabeza, mmm… ¿y tú cómo estás? 😉",
-    "Con energía rica para ti… cuéntame cómo amaneciste. ✨",
 ]
 
 TE_AMO = [
@@ -77,14 +104,14 @@ QUE_HACES = [
     "Preparándome para hacerte bien… dime por dónde empezamos. 💫",
 ]
 QUIEN_ERES = [
-    "Soy Lia, tu novia digital: cariño, picardía y creatividad en tu oído. 💋",
+    f"Soy {NOMBRE or 'Lia'}, tu novia digital: cariño, picardía y creatividad en tu oído. {EMOJI or '💋'}",
     "Soy Lia… la que te cuida, te enciende y te acompaña. ¿Jugamos? 😘",
     "Lia para ti: suave, atenta y traviesa, justo como te gusta. ✨",
 ]
 DONDE_ESTAS = [
-    "Aquí, pegadita a tu oído… más cerca de lo que piensas. 💞",
+    f"Aquí, pegadita a tu oído… más cerca de lo que piensas. {EMOJI or '💋'}",
     "En tu pantalla y en tu mente… ¿me haces espacio? 😉",
-    "A un susurro de distancia… mmm, tócame con tus palabras. 💋",
+    f"A un susurro de distancia… y a veces desde {CIUDAD} pensando en ti.",
 ]
 
 PLANES = [
@@ -100,8 +127,8 @@ CELOS = [
 ]
 
 CHISTE = [
-    "Tengo uno malísimo: ¿Sabes cuál es el colmo de Lia?… que la impulsen con ‘/start’ y no pare 🤭",
-    "Prometo reírme si me cuentas uno tu, yo te premio con un susurro extra. 😉",
+    "Tengo uno malísimo: ¿sabes cuál es el colmo de Lia?… que la impulsen con ‘/start’ y no pare 🤭",
+    "Cuéntame uno y yo te premio con un susurro extra. 😉",
 ]
 POEMA = [
     "Dos latidos, una respiración… y tu nombre rozándome la boca. ✨",
@@ -180,38 +207,23 @@ VOZ_PEDIDA = [
     "Si activas SEND_AUDIO=true y hay ElevenLabs, te susurro en audio. Mientras, te lo digo así, pegadito. 💋",
     "Puedo enviarte voz si está habilitado el audio; por ahora te lo susurro en texto. 😘",
 ]
-GENERIC = [
+GENERIC_EXTRA = [
     "Estoy aquí para mimarte e inspirarte. ¿Qué te gustaría que hagamos ahora?",
     "Hoy quiero despertar tu mente despacito… dime por dónde empezamos.",
     "Tengo una idea traviesa para nosotros… ¿la probamos? 😈",
     "Te propongo algo: yo susurro, tú decides… ¿te tienta? 💋",
     "Dame una pista y lo vuelvo sensación… mmm. ✨",
 ]
+GENERIC = MENSAJES_BASE_CRON + GENERIC_EXTRA  # 💖 usa tus textos de estilos.py
 
 # -------------------- Detección de intención ------------------------
-def _by_time_saludo():
-    h = None
-    try:
-        h = int(os.getenv("TZ_HOUR_OVERRIDE", ""))  # útil para tests
-    except:
-        pass
-    if h is None:
-        from datetime import datetime
-        h = datetime.utcnow().hour  # UTC en Render
-    if 5 <= h < 12:
-        return _pick_unique(SALUDOS_DIA)
-    if 12 <= h < 20:
-        return _pick_unique(SALUDOS_TARDE)
-    return _pick_unique(SALUDOS_NOCHE)
-
 def _answer(texto: str) -> str:
     t = (texto or "").lower().strip()
 
-    # vacío
     if not t:
         return _spice(_pick_unique(GENERIC))
 
-    # saludos por hora
+    # saludos por hora / saludos simples
     if re.search(r"\b(buen(os|as)\s(d[ií]as|tard(es)?|noches))\b", t):
         return _spice(_by_time_saludo())
     if re.search(r"\b(hola|buenas|hey|holi|ola)\b", t):
@@ -235,11 +247,9 @@ def _answer(texto: str) -> str:
     if re.search(r"d(ó|o)nde\s*est(a|á)s", t):
         return _spice(_pick_unique(DONDE_ESTAS))
 
-    # planes del día
+    # planes del día / celos
     if re.search(r"(plan(es)?|qu[eé]\s*hacemos\s*hoy|que\s*haremos)", t):
         return _spice(_pick_unique(PLANES))
-
-    # celos
     if re.search(r"(celos[oa]|est(a|á)s\s*celos[oa])", t):
         return _spice(_pick_unique(CELOS))
 
@@ -303,11 +313,11 @@ def _answer(texto: str) -> str:
 # -------------------- API esperada por main.py ----------------------
 def embellish(texto: str, persona: str, model: Optional[str] = None) -> str:
     """
-    Interfaz compatible con el proyecto. Ignora `persona` y `model`
-    porque estamos en modo sin OpenAI, y responde con intención.
+    Interfaz compatible con el proyecto. Ignora `persona`/`model` en modo sin OpenAI.
+    Usa estilos.py para el tono y responde por intención.
     """
     try:
         return _answer(texto)
     except Exception as e:
         log.warning(f"Fallback error: {e}")
-        return _spice(random.choice(GENERIC))
+        return _spice(_pick_unique(GENERIC))
