@@ -1,37 +1,25 @@
-import os
-import requests
-from conversacion_lia import generar_respuesta_continua
-from voz_lia import generar_audio
+# telegram_webhook.py
+# Manejador "silencioso": procesa el update si lo necesitas para logs/estados,
+# pero NO envía mensajes (para evitar duplicados y frases de rechazo).
+# Si en el futuro quieres que esta ruta envíe algo, pásalo SIEMPRE por anti_negativa.limpiar_negativa.
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+import json
+import traceback
 
-async def manejar_update(data):
+def manejar_update(update: dict) -> None:
+    """
+    Procesa el update de Telegram sin emitir respuestas.
+    Útil para métricas, logs, analíticas, etc.
+    """
     try:
-        mensaje = data.get("message") or data.get("edited_message")
-        if not mensaje:
-            return
-
-        chat_id = mensaje["chat"]["id"]
-        texto = mensaje.get("text", "")
-
-        respuesta = generar_respuesta_continua(texto)
-
-        if "!vozON" in texto:
-            audio_path = generar_audio(respuesta)
-            if audio_path:
-                with open(audio_path, "rb") as f:
-                    requests.post(
-                        f"{TELEGRAM_API_URL}/sendVoice",
-                        data={"chat_id": chat_id},
-                        files={"voice": f}
-                    )
-                    os.remove(audio_path)
-        else:
-            requests.post(
-                f"{TELEGRAM_API_URL}/sendMessage",
-                json={"chat_id": chat_id, "text": respuesta}
-            )
-
-    except Exception as e:
-        print(f"Error en manejo de update: {e}")
+        # Log mínimo (evita volcar binarios grandes)
+        msg = update.get("message", {})
+        chat = msg.get("chat", {})
+        text = msg.get("text", "")
+        print(f"[webhook-silent] chat_id={chat.get('id')} text={text!r}")
+        # Aquí podrías guardar métricas, estados, etc.
+        return
+    except Exception:
+        print("[webhook-silent] error procesando update:")
+        print(traceback.format_exc())
+        return
