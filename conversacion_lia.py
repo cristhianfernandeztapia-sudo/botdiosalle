@@ -1,6 +1,8 @@
 from openai import OpenAI
 import os, time, traceback
-from estilos import estilo_default
+
+# 🔹 Ajuste clave: usamos la función correcta de estilos
+from estilos import estilo_predeterminado as estilo_default
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -12,8 +14,8 @@ def generar_respuesta_continua(mensaje_usuario: str) -> str:
 
         estilo = estilo_default(mensaje_usuario)
         mensajes = [
-            {"role": "system", "content": estilo["system"]},
-            {"role": "user", "content": estilo["user"]}
+            {"role": "system", "content": estilo["sistema"]},
+            {"role": "user", "content": estilo["usuario"]}
         ]
 
         # 2) Reintentos con backoff (por si Render está “frío” o hay timeouts)
@@ -31,20 +33,17 @@ def generar_respuesta_continua(mensaje_usuario: str) -> str:
                 )
                 texto = (resp.choices[0].message.content or "").strip()
                 if texto:
-                    # 3) Sanitizar mínimos (evita None y espacios)
                     return texto
                 else:
                     raise ValueError("Respuesta vacía del modelo")
             except Exception as inner:
-                # log breve por intento
                 print(f"⚠️ Intento {i+1}/{intentos} falló: {inner}")
                 if i < intentos - 1:
                     time.sleep(1.5 * (i + 1))  # backoff progresivo
                 else:
-                    raise  # sale al except externo
+                    raise
 
-    except Exception as e:
-        # 4) Log detallado en Render para ver el error real
+    except Exception:
         print("❌ Error generando respuesta continua:")
         print(traceback.format_exc())
         return "Ups… tuve un pequeño problema, amor. Dímelo de nuevo y te respondo rico 😘"
