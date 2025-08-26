@@ -10,7 +10,7 @@ def generar_respuesta_continua(mensaje_usuario):
 
         mensajes = [
             {"role": "system", "content": estilo["system"]},
-            {"role": "user", "content": estilo["prompt"]}
+            {"role": "user", "content": estilo["user"]}  # ← Cambio aquí
         ]
 
         respuesta = client.chat.completions.create(
