@@ -24,16 +24,15 @@ request = HTTPXRequest(
 )
 bot = Bot(token=TELEGRAM_BOT_TOKEN, request=request)
 
-def _ts():
-    """Marca de tiempo para logs"""
+def _ts() -> str:
     return datetime.utcnow().strftime("%H:%M:%S")
 
-# ===== Enviar voz de forma asíncrona =====
+# ===== Envío de voz en segundo plano =====
 async def _enviar_voz_async(chat_id: int, texto: str):
     try:
         if DEBUG:
             print(f"[{_ts()} VOZ] Generando audio…")
-        archivo_audio = generar_audio(texto)
+        archivo_audio = generar_audio(texto)  # texto ya viene filtrado
         if archivo_audio:
             with open(archivo_audio, "rb") as f:
                 await bot.send_voice(chat_id=chat_id, voice=f)
@@ -71,21 +70,21 @@ async def recibir_update(request_http: Request):
         respuesta = "Ven… te extraño. Déjame mimarte un ratito, ¿sí? 💋"
 
     if DEBUG:
-        print(f"[{_ts()} MAIN] ➡️ RESP_ORIGINAL: {repr(respuesta)[:600]}")
+        print(f"[{_ts()} MAIN] ➡️ RESP_ORIGINAL: {repr(respuesta)[:900]}")
 
-    # 2) Filtrar frases negativas antes de enviar
+    # 2) Filtrar negativas y quedarnos con el primer bloque sano
     respuesta_filtrada = limpiar_negativa(respuesta)
 
     if DEBUG:
-        print(f"[{_ts()} MAIN] ✅ RESP_ENVIADA : {repr(respuesta_filtrada)[:600]}")
+        print(f"[{_ts()} MAIN] ✅ RESP_ENVIADA : {repr(respuesta_filtrada)[:900]}")
 
-    # 3) Enviar texto primero
+    # 3) Enviar texto
     try:
         await bot.send_message(chat_id=chat_id, text=respuesta_filtrada)
     except Exception as e:
         print(f"[{_ts()} MAIN] ⚠️ Error enviando texto: {e}")
 
-    # 4) Lanzar la voz en background
+    # 4) Enviar voz en background con el MISMO texto filtrado
     try:
         asyncio.create_task(_enviar_voz_async(chat_id, respuesta_filtrada))
     except Exception as e:
