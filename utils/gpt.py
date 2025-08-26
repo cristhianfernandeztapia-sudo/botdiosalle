@@ -6,7 +6,7 @@ _PRINTED = False  # para loguear 1 sola vez la URL
 
 def _get_client():
     # Toma primero LLM_*, si no existen toma OPENAI_*; fallback local
-    base = os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "http://localhost:1234/v1"
+    base = (os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "http://localhost:1234/v1").strip().rstrip("/")
     base = base.rstrip("/")
     key  = os.getenv("LLM_API_KEY")  or os.getenv("OPENAI_API_KEY")  or "lmstudio"
     client = OpenAI(base_url=base, api_key=key)
