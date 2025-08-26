@@ -1,6 +1,0 @@
-fastapi
-python-telegram-bot>=20.3
-uvicorn
-openai>=1.0.0
-requests
-gtts
