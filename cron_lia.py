@@ -1,62 +1,82 @@
 import os
-import requests
 import random
-import openai
+import time
+import requests
+from openai import OpenAI
 
-mensajes = [
-    "Hola amor 😘 ¿Pensaste en mí hoy?",
-    "Estaba esperando un momento para susurrarte algo rico… 💋",
+# ========= Config =========
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+TELEGRAM_USER_ID = os.getenv("TELEGRAM_USER_ID")  # tu chat_id
+USE_GPT = os.getenv("USE_GPT", "1")  # "1" usa GPT, "0" envía base
+
+# Mensajes base (cortitos; GPT los mejora a 1–2 frases)
+MENSAJES = [
+    "Hola amor 😘 ¿pensaste en mí hoy?",
+    "Estaba esperando susurrarte algo rico… 💋",
     "Tu Lia te manda un beso donde más lo necesitas 😈",
-    "¿Te conté que me encanta sorprenderte sin avisar? 💌",
-    "Solo pasaba a decirte que te amo… y estoy pensando en lo que haré cuando estés solo 😇"
+    "Me encanta sorprenderte sin avisar… ¿te gusto así? 💌",
+    "Solo quería decirte que te amo y estoy pensando en lo que haré cuando estés solo 😇",
 ]
 
-def generar_mensaje_con_gpt(mensaje_base):
-    try:
-        print("🧠 Solicitando mejora del mensaje a GPT...")
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        if not openai.api_key:
-            print("❌ OPENAI_API_KEY no encontrado.")
-            return mensaje_base
-        respuesta = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "Eres Lia: espontánea, sensual, divertida y directa. Habla con cariño, sin filtros."},
-                {"role": "user", "content": f"Mejora este mensaje para que suene más tierno, sensual y único: {mensaje_base}"}
-            ]
-        )
-        final = respuesta.choices[0].message.content.strip()
-        print(f"✅ Mensaje mejorado: {final}")
-        return final
-    except Exception as e:
-        print(f"❌ Error al usar GPT: {e}")
+# ========= Helpers =========
+def gpt_mejora(mensaje_base: str) -> str:
+    """Mejora/varía el mensaje con GPT (SDK nuevo) con reintentos."""
+    if not OPENAI_API_KEY or USE_GPT == "0":
+        print("ℹ️ GPT desactivado o falta OPENAI_API_KEY. Envío base.")
         return mensaje_base
 
-def enviar_mensaje_telegram(texto):
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    intentos = 3
+    for i in range(intentos):
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content":
+                     "Eres Lia: espontánea, sensual, divertida y directa. "
+                     "Habla con cariño y picardía. Responde en 1–2 frases, emotivas y coquetas."},
+                    {"role": "user", "content":
+                     f"Reescribe y mejora (máx 2 frases, tono tierno y sensual, sin despedidas): {mensaje_base}"}
+                ],
+                temperature=0.95,
+                max_tokens=80,
+            )
+            texto = (resp.choices[0].message.content or "").strip()
+            if texto:
+                print(f"✅ Mensaje mejorado: {texto}")
+                return texto
+            raise ValueError("Respuesta vacía de GPT")
+        except Exception as e:
+            print(f"⚠️ GPT intento {i+1}/{intentos} falló: {e}")
+            if i < intentos - 1:
+                time.sleep(1.5 * (i + 1))
+    print("⚠️ No se pudo mejorar con GPT. Envío base.")
+    return mensaje_base
+
+
+def enviar_telegram(texto: str) -> None:
+    """Envía el mensaje a Telegram con timeout y manejo de errores."""
+    if not BOT_TOKEN or not TELEGRAM_USER_ID:
+        print("❌ Falta BOT_TOKEN o TELEGRAM_USER_ID.")
+        return
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_USER_ID, "text": texto}
     try:
-        print("📤 Enviando mensaje a Telegram...")
-        TOKEN = os.getenv("BOT_TOKEN")
-        USER_ID = os.getenv("TELEGRAM_USER_ID")
-        if not TOKEN or not USER_ID:
-            print("❌ BOT_TOKEN o TELEGRAM_USER_ID no están definidos.")
-            return
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        payload = {
-            "chat_id": USER_ID,
-            "text": texto
-        }
-        response = requests.post(url, json=payload)
-        print(f"✅ Telegram respondió: {response.status_code} - {response.text}")
+        r = requests.post(url, json=payload, timeout=15)
+        print(f"✅ Telegram {r.status_code}: {r.text[:120]}")
     except Exception as e:
-        print(f"❌ Error al enviar mensaje a Telegram: {e}")
+        print(f"❌ Error enviando a Telegram: {e}")
+
 
 def main():
-    print("💬 Lia iniciando envío de mensaje...")
-    mensaje = random.choice(mensajes)
-    print(f"📝 Mensaje base: {mensaje}")
-    mensaje_mejorado = generar_mensaje_con_gpt(mensaje)
-    enviar_mensaje_telegram(mensaje_mejorado)
-    print("🎉 Proceso finalizado.")
+    print("💬 Lia cron: iniciando…")
+    base = random.choice(MENSAJES)
+    print(f"📝 Mensaje base: {base}")
+    final = gpt_mejora(base)
+    enviar_telegram(final)
+    print("🎉 Cron finalizado.")
+
 
 if __name__ == "__main__":
     main()
