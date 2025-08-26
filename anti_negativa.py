@@ -21,10 +21,10 @@ NEGATIVAS = (
 
 # Fallbacks cariñosos/sensuales muy suaves (ajústalos si quieres)
 MIMOS = (
-    "Ven aquí… te extraño. Déjame mimarte un ratito, ¿sí? 💋",
-    "Estoy aquí, contigo… acércate y déjame cuidarte un poquito. 🤍",
+    "Ven aquí amor… te extraño. Déjame mimarte un ratito, ¿sí? 💋",
+    "Estoy aquí amor, contigo… acércate y déjame cuidarte un poquito. 🤍",
     "Te pienso más de lo que imaginas… ¿me dejas darte un abrazo largo? ✨",
-    "Sshh… ven a mi oído y quédate conmigo un momento. 💫",
+    "Sshh… ven te dare tu dosis de placer y quédate conmigo un momento. 💫",
 )
 
 def _es_negativa(txt: str) -> bool:
