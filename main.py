@@ -2,15 +2,22 @@ import os
 import random
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
-from estilos import NOMBRE, EMOJI, SALUDO_START, MENSAJES_BASE_CRON, PROMPT_PERSONA
+
+from estilos import NOMBRE, EMOJI, SALUDO_START, MENSAJES_BASE_CRON, SYSTEM_LIA
 from utils.logger import get_logger
 from utils.telegram import send_message, send_audio, set_webhook
-from utils.gpt import embellish
+from utils.gpt import completar  # ← usamos el motor nuevo
 
+# Flags / ENV
 SEND_AUDIO = os.getenv("SEND_AUDIO", "false").lower() == "true"
 BASE_URL = os.getenv("BASE_URL")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# Afinado (opcionales)
+LIA_TEMP = float(os.getenv("LIA_TEMP", "1.05"))
+LIA_TOP_P = float(os.getenv("LIA_TOP_P", "0.92"))
+LIA_MAX_TOKENS = int(os.getenv("LIA_MAX_TOKENS", "600"))
 
 log = get_logger("main")
 app = FastAPI(title="BotLia")
@@ -45,18 +52,21 @@ async def telegram_webhook(request: Request):
         header_secret = request.headers.get("x-telegram-bot-api-secret-token") or request.headers.get("X-Telegram-Bot-Api-Secret-Token")
         if header_secret != WEBHOOK_SECRET:
             raise HTTPException(status_code=401, detail="Secret inválido")
+
     update = await request.json()
     log.debug(f"Update: {update}")
+
     message = update.get("message") or update.get("edited_message") or {}
     if not message:
         return {"ok": True}
+
     chat = message.get("chat") or {}
     chat_id = chat.get("id")
     text = message.get("text") or message.get("caption") or ""
     if not chat_id:
         return {"ok": True}
 
-    # Respuestas
+    # /start
     if text.strip().lower().startswith("/start"):
         saludo = SALUDO_START.format(nombre=NOMBRE, emoji=EMOJI)
         await send_message(chat_id, saludo)
@@ -69,11 +79,22 @@ async def telegram_webhook(request: Request):
                 log.warning(f"Error TTS bienvenida: {e}")
         return {"ok": True}
 
-    # Respuesta creativa (OpenAI si disponible)
+    # Respuesta creativa (LM Studio vía completar)
     prompt = text.strip() or random.choice(MENSAJES_BASE_CRON)
-    respuesta = embellish(prompt, persona=PROMPT_PERSONA)
+    try:
+        respuesta = completar(
+            texto=prompt,
+            system_prompt=SYSTEM_LIA,
+            temp=LIA_TEMP,
+            max_tokens=LIA_MAX_TOKENS,
+            top_p=LIA_TOP_P,
+        )
+    except Exception as e:
+        log.warning(f"Error LLM: {e}")
+        respuesta = random.choice(MENSAJES_BASE_CRON)
 
     await send_message(chat_id, respuesta)
+
     if SEND_AUDIO and os.getenv("ELEVEN_API_KEY"):
         try:
             from voz_lia import sintetizar
