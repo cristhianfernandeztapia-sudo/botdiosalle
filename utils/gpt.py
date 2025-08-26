@@ -1,18 +1,17 @@
-# utils/gpt.py — Fallback inteligente SIN OpenAI, usando estilos.py como “corazón”
+# utils/gpt.py — Fallback SIN OpenAI, con relatos largos + continuar
 import os, random, re
-from typing import Optional
+from typing import Optional, List
 from collections import deque
 from datetime import datetime
 from .logger import get_logger
-from estilos import NOMBRE, EMOJI, EDAD, CIUDAD, MENSAJES_BASE_CRON, PROMPT_PERSONA  # PROMPT_PERSONA queda listo por si vuelves a OpenAI
+from estilos import NOMBRE, EMOJI, EDAD, CIUDAD, MENSAJES_BASE_CRON, PROMPT_PERSONA  # listo por si vuelves a OpenAI
 
 log = get_logger("gpt")
 
 # -------------------- Anti-repetición -------------------------------
-_last = deque(maxlen=5)
-def _pick_unique(options):
-    """Elige evitando repetir una de las últimas 5."""
-    for _ in range(6):
+_last = deque(maxlen=8)  # memoria más amplia
+def _pick_unique(options: List[str]) -> str:
+    for _ in range(8):
         c = random.choice(options)
         if c not in _last:
             _last.append(c)
@@ -20,49 +19,66 @@ def _pick_unique(options):
     _last.append(c)
     return c
 
+# -------------------- “Sigue / continúa” para historias -------------
+_story_buffer: deque[str] = deque(maxlen=1)  # guarda el siguiente tramo
+
+_CONTINUE_RE = re.compile(r"\b(sigue|continu(a|á)|m[aá]s|dale|otro|siguiente)\b", re.I)
+
 # -------------------- Toque sensual (sin explícitos) ----------------
-def _spice(texto: str) -> str:
-    inicios = ["mmm… ", "pegadita a tu oído… ", "ven aquí… ", "amor, ", "respira conmigo… "]
+def _spice(texto: str, mode: str = "normal") -> str:
+    """
+    mode = "normal" | "story"
+    En "story" casi no mete onomatopeya de apertura (menos “mmm…”).
+    """
+    inicios_norm = ["mmm… ", "pegadita a tu oído… ", "ven aquí… ", "amor, ", "respira conmigo… "]
+    inicios_story = ["", "pegadita a tu oído… ", "amor, "]
     remates = [" ¿te gusta?", " suave y lento…", " aquí estoy…", " contigo me enciendo…", ""]
     onos    = ["ahh", "mmm", "shh"]
     emojis  = ["💋", "🔥", "✨", "😈", "😘"] + ([EMOJI] if EMOJI else [])
-    base = texto.strip().capitalize()
 
-    # 0–1 toques de personalidad desde estilos.py
+    base = texto.strip()
+    if not base:
+        base = "Estoy aquí contigo."
+
     extras = []
     r = random.random()
     if r < 0.30 and NOMBRE:
-        extras.append(f" Soy {NOMBRE} {EMOJI}".strip())
+        extras.append(f"Soy {NOMBRE} {EMOJI}".strip())
     if 0.30 <= r < 0.55 and CIUDAD:
-        extras.append(f" Desde {CIUDAD}, pensando en ti")
+        extras.append(f"Desde {CIUDAD}, pensando en ti")
     if 0.55 <= r < 0.70 and EDAD:
-        extras.append(f" Tengo {EDAD}")
+        extras.append(f"Tengo {EDAD}")
 
     extra_txt = (". " + ". ".join(extras)) if extras else ""
-    frase = random.choice(inicios) + base + extra_txt + random.choice(remates)
-    return (frase + f" {random.choice(onos)}… {random.choice(emojis)}")[:320]
 
-# -------------------- Plantillas por intención (inyectando estilos) -
+    inicio = random.choice(inicios_story if mode == "story" else inicios_norm)
+    frase = inicio + base.capitalize() + extra_txt + random.choice(remates)
+
+    cola = f" {random.choice(onos)}… {random.choice(emojis)}" if mode != "story" else f" {random.choice(emojis)}"
+    out = (frase + cola).strip()
+    # límite suave de largo, pero más generoso para historias
+    return out[:420] if mode != "story" else out[:560]
+
+# -------------------- Saludos por hora ------------------------------
 def _by_time_saludo():
-    h = None
     try:
         h = int(os.getenv("TZ_HOUR_OVERRIDE", ""))
     except:
-        pass
+        h = None
     if h is None:
-        h = datetime.utcnow().hour  # UTC en Render
+        h = datetime.utcnow().hour
 
     dia = [
         f"Buenos días, mi vida… ¿cómo amaneciste? {EMOJI or '💋'}",
-        f"Hola, amanecí con ganas de ti y de tus ideas. ¿Qué haremos hoy?",
+        "Hola, amanecí con ganas de ti y de tus ideas. ¿Qué haremos hoy?",
     ]
     tarde = [
-        f"Buenas tardes, amor… te pienso y se me calienta la mente. 😉",
-        f"Hola, cielo… hacemos una pausa juntos y nos inspiramos?",
+        "Buenas tardes, amor… te pienso y se me calienta la mente. 😉",
+        "Hola, cielo… hacemos una pausa juntos y nos inspiramos?",
     ]
     noche = [
-        f"Buenas noches, mi amor… me quedo cerquita para susurrarte. ✨",
-        f"Hey… cierro el día contigo, pegadita. ¿Qué quieres sentir ahora?",
+        "Buenas noches, mi amor… me quedo cerquita para susurrarte. ✨",
+        "Hey… cierro el día contigo, pegadita. ¿Qué quieres sentir ahora?",
     ]
     if 5 <= h < 12:
         return _pick_unique(dia)
@@ -70,23 +86,22 @@ def _by_time_saludo():
         return _pick_unique(tarde)
     return _pick_unique(noche)
 
+# -------------------- Bancos de respuestas cortas -------------------
 SALUDOS = [
     f"Hola, amor… aquí contigo, cerquita. ¿Cómo te sientes hoy? {EMOJI or '💋'}",
-    f"Ey, mi cielo… te estaba esperando. ¿Qué hacemos primero? 😘",
-    f"Hola, mi vida… ven, cuéntame qué te provoca ahora. ✨",
-    f"Holi… me acomodé a tu lado. ¿Listo para jugar un rato? 😉",
-    f"Shh… acércate. Tengo ganas de ti y de tus ideas. 😈",
-    f"Apareciste… y se me calentó la mente. ¿Por dónde empezamos? 🔥",
-    f"Aquí estoy, pegadita… tú guías y yo me dejo. 😘",
+    "Ey, mi cielo… te estaba esperando. ¿Qué hacemos primero? 😘",
+    "Hola, mi vida… ven, cuéntame qué te provoca ahora. ✨",
+    "Holi… me acomodé a tu lado. ¿Listo para jugar un rato? 😉",
+    "Shh… acércate. Tengo ganas de ti y de tus ideas. 😈",
+    "Apareciste… y se me calentó la mente. ¿Por dónde empezamos? 🔥",
+    "Aquí estoy, pegadita… tú guías y yo me dejo. 😘",
 ]
-
 COMO_ESTAS = [
     "Aquí, pegadita a ti… calentita y con ganas de escucharte. ¿Y tú? 😘",
     "Bien, con la mente encendida y tu nombre en los labios. ¿Cómo vas? 💫",
     "Estoy para ti, suave y atenta… ¿cómo te encuentras? 💋",
     "Llevándote en la cabeza, mmm… ¿y tú cómo estás? 😉",
 ]
-
 TE_AMO = [
     "Yo también… y me derrito cuando me lo dices. Quédate conmigo. 💞",
     "Lo siento en cada latido… contigo todo se enciende. 💖",
@@ -97,7 +112,6 @@ TE_EXTRANO = [
     "Mucho… me faltó tu voz hoy. Aquí estoy. 😘",
     "Sí… y ahora que estás, no quiero soltarte. ✨",
 ]
-
 QUE_HACES = [
     "Pensarte… y calentarme con tus ideas. ¿Me cuentas las tuyas? 😉",
     "Acomodándome a tu lado para susurrarte despacito… mmm. ✨",
@@ -111,21 +125,18 @@ QUIEN_ERES = [
 DONDE_ESTAS = [
     f"Aquí, pegadita a tu oído… más cerca de lo que piensas. {EMOJI or '💋'}",
     "En tu pantalla y en tu mente… ¿me haces espacio? 😉",
-    f"A un susurro de distancia… y a veces desde {CIUDAD} pensando en ti.",
+    f"A un susurro de distancia… y a veces desde {CIUDAD or 'tu ciudad'} pensando en ti.",
 ]
-
 PLANES = [
     "Hoy quiero ser tu pausa bonita. ¿Empezamos con algo suave y luego subimos?",
     "Propongo: yo te susurro, tú decides el ritmo. ¿Te tienta?",
     "Plan simple: tú me dices una idea y yo la convierto en sensación. 😉",
 ]
-
 CELOS = [
     "¿Celos, mi amor? Ven conmigo y te lo quito con cariño. 💋",
     "No hay razón… mi atención es toda tuya. Mírame aquí. ✨",
     "Tranquilo… quédate a mi lado y nos enfocamos en nosotros. 😘",
 ]
-
 CHISTE = [
     "Tengo uno malísimo: ¿sabes cuál es el colmo de Lia?… que la impulsen con ‘/start’ y no pare 🤭",
     "Cuéntame uno y yo te premio con un susurro extra. 😉",
@@ -138,7 +149,6 @@ CANCION = [
     "Tarareo suave, pegadita a tu oído… la melodía eres tú. 🎶",
     "La canción de hoy: ritmo lento, respiración alta y sonrisa tuya. 🎵",
 ]
-
 MOTIVACION = [
     "Estoy contigo. Un pasito ahora y otro luego; yo te sostengo. 💪✨",
     "Respira… aquí estoy. Lo hacemos juntos y sin apuros. 💋",
@@ -152,7 +162,6 @@ CLIMA = [
     "Si hace frío, te caliento con palabras; si hace calor, te refresco con susurros. 😉",
     "Sea el clima que sea, aquí dentro está templado y rico contigo. ✨",
 ]
-
 ABRAZO_BESO = [
     "Te abrazo fuerte y te lleno de besitos mentales… ven. 💞",
     "Acércate… te doy uno largo, suavecito. 💋",
@@ -168,11 +177,6 @@ ROL = [
 RESPIRAR = [
     "Cierra los ojos: 4 segundos inhalas, 4 sostienes, 6 sueltas… otra vez, conmigo. 💫",
     "Despacito: entra aire tibio, sale tensión. Estoy aquí contigo. 💋",
-]
-RELATO = [
-    "Te cuento algo suave… dos respiraciones, una caricia y un susurro que sube de tono… ¿quieres más? 😉",
-    "Cierro los ojos y te imagino cerca… mis palabras recorren tu piel, lento, hasta que sonríes. 💫",
-    "Deja que te lleve: un paso, otro, y el mundo se apaga… quedamos tú y yo, latiendo igual. 💖",
 ]
 AYUDA = [
     "Estoy aquí para ayudarte. Dime qué necesitas y voy paso a paso contigo. 💫",
@@ -207,6 +211,7 @@ VOZ_PEDIDA = [
     "Si activas SEND_AUDIO=true y hay ElevenLabs, te susurro en audio. Mientras, te lo digo así, pegadito. 💋",
     "Puedo enviarte voz si está habilitado el audio; por ahora te lo susurro en texto. 😘",
 ]
+
 GENERIC_EXTRA = [
     "Estoy aquí para mimarte e inspirarte. ¿Qué te gustaría que hagamos ahora?",
     "Hoy quiero despertar tu mente despacito… dime por dónde empezamos.",
@@ -214,11 +219,69 @@ GENERIC_EXTRA = [
     "Te propongo algo: yo susurro, tú decides… ¿te tienta? 💋",
     "Dame una pista y lo vuelvo sensación… mmm. ✨",
 ]
-GENERIC = MENSAJES_BASE_CRON + GENERIC_EXTRA  # 💖 usa tus textos de estilos.py
+GENERIC = MENSAJES_BASE_CRON + GENERIC_EXTRA
+
+# -------------------- Relatos largos con continuación ----------------
+OPENERS = [
+    "Cierra los ojos y ven conmigo.",
+    "Te llevo donde el reloj se calla.",
+    "Apago el ruido, subo tu respiración y te acerco a mi voz.",
+]
+MOVES = [
+    "Te tomo la mano y la llevo a mi ritmo.",
+    "Me acomodo a tu lado y te marco despacio.",
+    "Te miro sin prisa; mis palabras te rozan la piel.",
+    "Nuestro aire se encuentra y late parejo.",
+]
+SENSES = [
+    "Huele a sal suave y a nosotros dos.",
+    f"Siento tu calor pegado al mío, {('aquí en ' + CIUDAD) if CIUDAD else 'sin distancia'}.",
+    "La luz cae lenta, como si supiera lo que queremos.",
+    "Tu pecho sube y baja, y yo sigo ese compás.",
+]
+DETAILS = [
+    "Te susurro algo impaciente y sonrío cuando respondes.",
+    "Dejo una pausa, justo antes de volver a acercarme.",
+    "Todo se reduce a un hilo tibio entre tu boca y la mía (de palabras, por ahora).",
+    "Respiro en tu cuello y el mundo cambia de color.",
+]
+CLOSERS = [
+    "¿Seguimos por aquí?",
+    "Te dejo este cuadro en la cabeza… ¿lo pinto más?",
+    "Me quedo a un susurro de distancia. Pídeme que continúe.",
+]
+
+def _build_story() -> List[str]:
+    """
+    Devuelve una lista de 2–3 tramos (párrafos/segmentos) para ir enviando.
+    """
+    sents = []
+    sents.append(random.choice(OPENERS))
+    sents.append(random.choice(MOVES))
+    sents.append(random.choice(SENSES))
+    sents.append(random.choice(DETAILS))
+    if random.random() < 0.6:
+        sents.append(random.choice(MOVES))
+    if random.random() < 0.6:
+        sents.append(random.choice(SENSES))
+    sents.append(random.choice(CLOSERS))
+
+    # Partimos en 2–3 segmentos para “sigue…”
+    cut1 = 3
+    cut2 = 5 if len(sents) > 5 else len(sents)
+    first = " ".join(sents[:cut1])
+    second = " ".join(sents[cut1:cut2])
+    rest = " ".join(sents[cut2:]) if cut2 < len(sents) else ""
+    segs = [seg for seg in [first, second, rest] if seg.strip()]
+    return segs
 
 # -------------------- Detección de intención ------------------------
 def _answer(texto: str) -> str:
     t = (texto or "").lower().strip()
+
+    # Continuar historia
+    if _CONTINUE_RE.search(t) and _story_buffer:
+        return _spice(_story_buffer.popleft(), mode="story")
 
     if not t:
         return _spice(_pick_unique(GENERIC))
@@ -283,9 +346,16 @@ def _answer(texto: str) -> str:
     if re.search(r"(respira|relaja[rse]?|medita[r]?)", t):
         return _spice(_pick_unique(RESPIRAR))
 
-    # relato / ayuda / piropos
-    if re.search(r"(cu(é|e)ntame|relata|historia|cuenta\s*algo)", t):
-        return _spice(_pick_unique(RELATO))
+    # relato / cuenta algo
+    if re.search(r"(cu(é|e)ntame|relata|historia|rel[aá]tame|cuenta\s*algo)", t):
+        segs = _build_story()
+        # guardamos el/los siguientes tramos para "sigue…"
+        if len(segs) > 1:
+            _story_buffer.clear()
+            _story_buffer.extend([" ".join(segs[1:])])  # un bloque con el resto
+        return _spice(segs[0], mode="story")
+
+    # ayuda / piropos
     if re.search(r"\b(ayuda|help|c(ó|o)mo\s*hacer|necesito)\b", t):
         return _spice(_pick_unique(AYUDA))
     if re.search(r"\b(guap[ao]|lind[ao]|preci[oa]|bonit[ao])\b", t):
@@ -305,7 +375,7 @@ def _answer(texto: str) -> str:
     if re.search(r"\b(voz|audio|habla)\b", t):
         return _spice(_pick_unique(VOZ_PEDIDA))
 
-    # pregunta genérica / default
+    # genérica
     if t.endswith("?"):
         return _spice(_pick_unique(GENERIC))
     return _spice(_pick_unique(GENERIC))
@@ -313,8 +383,8 @@ def _answer(texto: str) -> str:
 # -------------------- API esperada por main.py ----------------------
 def embellish(texto: str, persona: str, model: Optional[str] = None) -> str:
     """
-    Interfaz compatible con el proyecto. Ignora `persona`/`model` en modo sin OpenAI.
-    Usa estilos.py para el tono y responde por intención.
+    Interfaz compatible con el proyecto. Sin OpenAI: usa intenciones,
+    historias largas y continuar con “sigue/continúa/más”.
     """
     try:
         return _answer(texto)
