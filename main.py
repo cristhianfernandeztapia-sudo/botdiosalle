@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
-from telegram_webhook import manejar_update
+# (Opcional) Si ya no usarás manejar_update, puedes borrar esta import
+# from telegram_webhook import manejar_update
 from conversacion_lia import generar_respuesta_continua
 from voz_lia import generar_audio
 
@@ -9,7 +10,7 @@ import asyncio
 import os
 import traceback
 
-# 🔸 NUEVO: filtro que “tapa” la frase de rechazo sin tocar tu estilo
+# 🔸 Filtro que “tapa” la frase de rechazo sin tocar tu estilo
 from anti_negativa import limpiar_negativa
 
 app = FastAPI()
@@ -62,11 +63,11 @@ async def recibir_update(request_http: Request):
         print(traceback.format_exc())
         respuesta = "Estoy aquí contigo… ¿qué te apetece ahora, amor? 💋"
 
-    # 🔸 Asegurar string y evitar vacío
+    # Asegurar string y evitar vacío
     if not isinstance(respuesta, str) or not respuesta.strip():
         respuesta = "Ven… te extraño. Déjame mimarte un ratito, ¿sí? 💋"
 
-    # 🔸 NUEVO: filtrar cualquier negativa visible antes de enviar
+    # 🔸 Filtrar cualquier negativa visible antes de enviar
     respuesta = limpiar_negativa(respuesta)
 
     # 2) Enviar SIEMPRE el texto primero (webhook responde rápido)
@@ -81,14 +82,12 @@ async def recibir_update(request_http: Request):
     except Exception as e:
         print("ℹ️ No se pudo crear tarea de voz:", e)
 
-    # 4) Pasar también el update al webhook original (opcional)
-    try:
-        await manejar_update(data)
-    except Exception as e:
-        print("ℹ️ manejar_update lanzó excepción (no crítico):", e)
+    # 🔕 4) Ya NO reenviamos al webhook original para evitar duplicados
+    # try:
+    #     await manejar_update(data)
+    # except Exception as e:
+    #     print("ℹ️ manejar_update lanzó excepción (no crítico):", e)
 
     return {"status": "ok"}
 
 @app.get("/")
-def root():
-    return {"mensaje": "Lia está viva, con voz, y más pícara que nunca en Telegram 😈🎤"}
