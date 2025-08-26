@@ -9,6 +9,9 @@ import asyncio
 import os
 import traceback
 
+# 🔸 NUEVO: filtro que “tapa” la frase de rechazo sin tocar tu estilo
+from anti_negativa import limpiar_negativa
+
 app = FastAPI()
 
 # ===== Bot con timeouts generosos (evita telegram.error.TimedOut) =====
@@ -31,7 +34,7 @@ async def _enviar_voz_async(chat_id: int, texto: str):
                 await bot.send_voice(chat_id=chat_id, voice=f)
         else:
             print("⚠️ generar_audio() no devolvió archivo.")
-    except Exception as e:
+    except Exception:
         print("⚠️ Error al generar o enviar voz:")
         print(traceback.format_exc())
 
@@ -52,7 +55,19 @@ async def recibir_update(request_http: Request):
         return {"status": "ignored"}
 
     # 1) Generar respuesta (texto)
-    respuesta = generar_respuesta_continua(mensaje)
+    try:
+        respuesta = generar_respuesta_continua(mensaje)
+    except Exception:
+        print("⚠️ generar_respuesta_continua lanzó excepción:")
+        print(traceback.format_exc())
+        respuesta = "Estoy aquí contigo… ¿qué te apetece ahora, amor? 💋"
+
+    # 🔸 Asegurar string y evitar vacío
+    if not isinstance(respuesta, str) or not respuesta.strip():
+        respuesta = "Ven… te extraño. Déjame mimarte un ratito, ¿sí? 💋"
+
+    # 🔸 NUEVO: filtrar cualquier negativa visible antes de enviar
+    respuesta = limpiar_negativa(respuesta)
 
     # 2) Enviar SIEMPRE el texto primero (webhook responde rápido)
     try:
