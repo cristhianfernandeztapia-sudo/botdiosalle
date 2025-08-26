@@ -11,18 +11,18 @@ import traceback
 
 app = FastAPI()
 
-# ===== Bot con timeouts generosos =====
+# ===== Bot con timeouts generosos (evita telegram.error.TimedOut) =====
 TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 request = HTTPXRequest(
-    connect_timeout=20.0,
-    read_timeout=60.0,
-    write_timeout=60.0,
-    pool_timeout=60.0,
+    connect_timeout=20.0,  # tiempo para abrir conexión
+    read_timeout=60.0,     # tiempo esperando respuesta del server
+    write_timeout=60.0,    # tiempo para enviar datos
+    pool_timeout=60.0,     # tiempo esperando un slot del pool
 )
 bot = Bot(token=TELEGRAM_BOT_TOKEN, request=request)
 
-# ===== Envío de voz en segundo plano =====
+# ===== Envío de voz en segundo plano (no bloquea el webhook) =====
 async def _enviar_voz_async(chat_id: int, texto: str):
     try:
         archivo_audio = generar_audio(texto)
@@ -39,10 +39,15 @@ async def _enviar_voz_async(chat_id: int, texto: str):
 async def recibir_update(request_http: Request):
     data = await request_http.json()
 
+    # Extraer info básica del mensaje
     mensaje = data.get("message", {}).get("text", "")
     chat = data.get("message", {}).get("chat", {}) if data.get("message") else {}
     chat_id = chat.get("id")
 
+    # >>>> Log para obtener/confirmar tu CHAT ID en Render <<<<
+    print("📌 CHAT ID:", chat_id)
+
+    # Validación simple
     if not chat_id or not isinstance(mensaje, str):
         return {"status": "ignored"}
 
@@ -55,7 +60,7 @@ async def recibir_update(request_http: Request):
     except Exception as e:
         print("⚠️ Error enviando texto:", e)
 
-    # 3) Lanzar la voz en background (no bloquea el webhook)
+    # 3) Lanzar la voz en background (si falla, no interrumpe)
     try:
         asyncio.create_task(_enviar_voz_async(chat_id, respuesta))
     except Exception as e:
