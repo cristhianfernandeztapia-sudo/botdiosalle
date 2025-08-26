@@ -26,7 +26,7 @@ def generar_respuesta_continua(mensaje_usuario: str) -> str:
                     model="gpt-4o",
                     messages=mensajes,
                     temperature=0.95,
-                    max_tokens=600,   # un poco más de margen
+                    max_tokens=1200,   # un poco más de margen
                     top_p=1,
                     frequency_penalty=0.4,
                     presence_penalty=0.6,
