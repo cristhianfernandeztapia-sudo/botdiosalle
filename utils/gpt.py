@@ -31,7 +31,7 @@ def embellish(texto: str, persona: str, model: Optional[str] = None) -> str:
                 {"role": "user", "content": texto},
             ],
             temperature=0.85,
-            max_tokens=280,
+            max_tokens=800,
         )
         out = resp.choices[0].message.content.strip()
         return out or texto
