@@ -30,7 +30,8 @@ async def recibir_mensaje(request: Request):
     guardar_memoria(chat_id, memoria)
 
     respuesta = gpt.generar_respuesta(texto, sistema=PERSONALIDAD_LIA)
-
+    # print(f"Mensaje recibido: {texto}")
+    # print(f"Respuesta generada: {respuesta}")
     requests.post(URL_TELEGRAM, json={
         "chat_id": chat_id,
         "text": respuesta,
