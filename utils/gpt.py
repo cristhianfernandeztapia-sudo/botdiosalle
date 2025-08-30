@@ -1,17 +1,20 @@
-import openai
+# utilidades/gpt.py
+
 import os
+from openai import OpenAI
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generar_respuesta(mensaje, sistema):
+def generar_respuesta(texto_usuario: str, sistema: str = "") -> str:
     try:
-        respuesta = openai.ChatCompletion.create(
+        respuesta = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": sistema},
-                {"role": "user", "content": mensaje}
-            ]
+                {"role": "user", "content": texto_usuario}
+            ],
+            temperature=0.7
         )
         return respuesta.choices[0].message.content.strip()
     except Exception as e:
-        return f"[Error al generar respuesta: {e}]"
+        return f"[Error al generar respuesta: {str(e)}]"
