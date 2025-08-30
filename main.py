@@ -3,7 +3,7 @@ import os
 import requests
 from utils import gpt  # ← corregido aquí
 from estilos import PERSONALIDAD_LIA
-from memoria import cargar_memoria, guardar_memoria  # ← aquí corregido "de memoria importar"
+from memoria import cargar_memoria, guardar_memoria 
 
 app = FastAPI()
 
