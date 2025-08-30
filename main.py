@@ -1,26 +1,36 @@
+from fastapi import FastAPI, Request
 import os
-import openai
-from estilos import PERSONALIDAD_LIA, obtener_tono
+import requests
+from utilidades import gpt
+from estilos import PERSONALIDAD_LIA
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+app = FastAPI()
 
-def generar_respuesta(mensaje_usuario):
-    sistema = PERSONALIDAD_LIA
-    tono = obtener_tono("sensual")  # Cambia esto por otro tono si deseas
+TELEGRAM_TOKEN = os.getenv("BOT_TOKEN")
+TELEGRAM_USER_ID = os.getenv("TELEGRAM_USER_ID")
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 
-    respuesta = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": sistema},
-            {"role": "user", "content": mensaje_usuario}
-        ],
-        temperature=tono["temperatura"],
-        frequency_penalty=tono["frecuencia"],
-        presence_penalty=tono["presencia"]
-    )
-    return respuesta.choices[0].message.content.strip()
+URL_TELEGRAM = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    mensaje = "Hola Lia, ¿cómo estás?"
-    print(generar_respuesta(mensaje))
+
+@app.post("/telegram/webhook")
+async def recibir_mensaje(request: Request):
+    payload = await request.json()
+    mensaje = payload.get("message", {})
+    texto = mensaje.get("text")
+    chat_id = mensaje.get("chat", {}).get("id")
+
+    # Solo responde al usuario autorizado
+    if str(chat_id) != TELEGRAM_USER_ID:
+        return {"ok": False, "error": "usuario no autorizado"}
+
+    # Generar respuesta con GPT
+    respuesta = gpt.generar_respuesta(texto, sistema=PERSONALIDAD_LIA)
+
+    # Enviar respuesta a Telegram
+    requests.post(URL_TELEGRAM, json={
+        "chat_id": chat_id,
+        "text": respuesta,
+    })
+
+    return {"ok": True}
