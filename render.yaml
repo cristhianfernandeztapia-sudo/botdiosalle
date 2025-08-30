@@ -11,4 +11,3 @@ services:
     buildCommand: pip install -r requisitos.txt
     startCommand: python cron_lia.py
     schedule: "*/30 * * * *"
-    
