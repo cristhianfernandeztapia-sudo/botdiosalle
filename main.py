@@ -3,7 +3,7 @@ import os
 import requests
 from utils import gpt  # ← corregido aquí
 from estilos import PERSONALIDAD_LIA
-de memoria importar cargar_memoria, guardar_memoria
+from memoria import cargar_memoria, guardar_memoria  # ← aquí corregido "de memoria importar"
 
 app = FastAPI()
 
@@ -27,6 +27,11 @@ async def recibir_mensaje(request: Request):
     if not texto:
         print("Mensaje sin texto recibido")
         return {"ok": True, "message": "sin texto"}
+
+    # 🧠 Usamos memoria personalizada
+    memoria = cargar_memoria(chat_id)
+    memoria["último_mensaje"] = texto
+    guardar_memoria(chat_id, memoria)
 
     print(f"Mensaje recibido: {texto}")
     respuesta = gpt.generar_respuesta(texto, sistema=PERSONALIDAD_LIA)
