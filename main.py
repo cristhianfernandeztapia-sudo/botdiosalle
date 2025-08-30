@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Request
 import os
 import requests
 from utils import gpt  # ← corregido aquí
 from estilos import PERSONALIDAD_LIA
-from memoria import cargar_memoria, guardar_memoria 
+from memoria import cargar_memoria, guardar_memoria
 
 app = FastAPI()
 
@@ -21,21 +20,16 @@ async def recibir_mensaje(request: Request):
     chat_id = mensaje.get("chat", {}).get("id")
 
     if str(chat_id) != TELEGRAM_USER_ID:
-        print(f"Intento de acceso no autorizado: {chat_id}")
         return {"ok": False, "error": "usuario no autorizado"}
 
     if not texto:
-        print("Mensaje sin texto recibido")
         return {"ok": True, "message": "sin texto"}
 
-    # 🧠 Usamos memoria personalizada
     memoria = cargar_memoria(chat_id)
     memoria["último_mensaje"] = texto
     guardar_memoria(chat_id, memoria)
 
-    print(f"Mensaje recibido: {texto}")
     respuesta = gpt.generar_respuesta(texto, sistema=PERSONALIDAD_LIA)
-    print(f"Respuesta generada: {respuesta}")
 
     requests.post(URL_TELEGRAM, json={
         "chat_id": chat_id,
