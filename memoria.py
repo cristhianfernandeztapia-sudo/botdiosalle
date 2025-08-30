@@ -1,22 +1,15 @@
-
-import json
 import os
+import json
 
-ARCHIVO_MEMORIA = "memoria.json"
+def cargar_memoria(chat_id):
+    archivo = f"memoria/{chat_id}.json"
+    if os.path.exists(archivo):
+        with open(archivo, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-# Cargar memoria existente (si existe)
-if os.path.exists(ARCHIVO_MEMORIA):
-    with open(ARCHIVO_MEMORIA, "r", encoding="utf-8") as f:
-        memoria = json.load(f)
-else:
-    memoria = {}
-
-def recordar(clave: str, valor: str):
-    """Guarda una clave y su valor en la memoria."""
-    memoria[clave] = valor
-    with open(ARCHIVO_MEMORIA, "w", encoding="utf-8") as f:
-        json.dump(memoria, f, indent=2, ensure_ascii=False)
-
-def obtener_recuerdos():
-    """Devuelve la memoria completa como diccionario."""
-    return memoria
+def guardar_memoria(chat_id, datos):
+    os.makedirs("memoria", exist_ok=True)
+    archivo = f"memoria/{chat_id}.json"
+    with open(archivo, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=2, ensure_ascii=False)
