@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 import os
 import requests
-from utilidades import gpt
+from utils import gpt  # ← corregido aquí
 from estilos import PERSONALIDAD_LIA
 
 app = FastAPI()
