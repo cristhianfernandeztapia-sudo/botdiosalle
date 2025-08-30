@@ -2,7 +2,7 @@ services:
   - type: web
     name: botlia
     env: python
-    buildCommand: pip install -r requisitos.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn principal:app --host=0.0.0.0 --port=10000
     plan: free
     autoDeploy: true
@@ -10,6 +10,6 @@ services:
   - type: cron
     name: cronlia
     env: python
-    buildCommand: pip install -r requisitos.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python cron_lia.py
     schedule: "*/30 * * * *"
