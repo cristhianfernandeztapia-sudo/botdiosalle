@@ -1,15 +1,10 @@
-import openai
-import os
-
-openai.api_key = os.getenv("LLM_API_KEY")
-
-def generar_respuesta(texto_usuario):
-    respuesta = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "Eres Lia: espontánea, sensual, divertida, directa, femenina, emocional, y pícara. Habla con cariño y libertad, sin filtros. Siempre buscas conectar y provocar con tus palabras."},
-            {"role": "user", "content": texto_usuario}
-        ],
-        temperature=0.9,
-    )
-    return respuesta.choices[0].message.content.strip()
+import openai, os
+openai.api_key = os.getenv('OPENAI_API_KEY')
+def generar_respuesta(prompt):
+ return openai.ChatCompletion.create(
+  model='gpt-4o',
+  messages=[
+    {"role": "system", "content": "Eres Lia: espontánea, sensual, directa, femenina y muy cariñosa."},
+    {"role": "user", "content": prompt}
+  ]
+ )['choices'][0]['message']['content']
