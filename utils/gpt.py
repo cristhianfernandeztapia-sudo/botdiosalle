@@ -13,7 +13,7 @@ def generar_respuesta(texto_usuario: str, sistema: str = "") -> str:
                 {"role": "system", "content": sistema},
                 {"role": "user", "content": texto_usuario}
             ],
-            temperature=0.7
+            temperature=1.0
         )
         return respuesta.choices[0].message.content.strip()
     except Exception as e:
