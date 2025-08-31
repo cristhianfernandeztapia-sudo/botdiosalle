@@ -1,7 +1,7 @@
 import os
 import requests
-from utils import gpt  # ← corregido aquí
-from utils.estilos import PERSONALIDAD_LIA  # ✅ CORRECTO
+from utils import gpt
+from utils.estilos import PERSONALIDAD_LIA
 from memoria import cargar_memoria, guardar_memoria
 from fastapi import FastAPI, Request
 
@@ -26,13 +26,19 @@ async def recibir_mensaje(request: Request):
     if not texto:
         return {"ok": True, "message": "sin texto"}
 
+    # Cargar memoria
     memoria = cargar_memoria(chat_id)
-    memoria["último_mensaje"] = texto
+    historial = memoria.get("historial", [])
+
+    # Generar respuesta con historial
+    respuesta = gpt.generar_respuesta(texto_usuario=texto, sistema=PERSONALIDAD_LIA, historial=historial)
+
+    # Actualizar memoria
+    historial.append({"user": texto, "lia": respuesta})
+    memoria["historial"] = historial
     guardar_memoria(chat_id, memoria)
 
-    respuesta = gpt.generar_respuesta(texto, sistema=PERSONALIDAD_LIA)
-    # print(f"Mensaje recibido: {texto}")
-    # print(f"Respuesta generada: {respuesta}")
+    # Enviar a Telegram
     requests.post(URL_TELEGRAM, json={
         "chat_id": chat_id,
         "text": respuesta,
