@@ -23,7 +23,7 @@ def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA, chat_
         respuesta = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=mensajes,
-            temperature=1.0
+            temperature=1.3
         )
 
         texto_generado = respuesta.choices[0].message.content.strip()
