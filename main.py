@@ -31,7 +31,7 @@ async def recibir_mensaje(request: Request):
     historial = memoria.get("historial", [])
 
     # Generar respuesta con historial
-    respuesta = gpt.generar_respuesta(texto_usuario=texto, sistema=PERSONALIDAD_LIA, historial=historial)
+    respuesta = gpt.generar_respuesta(texto_usuario=texto, sistema=PERSONALIDAD_LIA, chat_id=chat_id)
 
     # Actualizar memoria
     historial.append({"user": texto, "lia": respuesta})
