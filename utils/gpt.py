@@ -2,7 +2,7 @@
 
 import os
 from openai import OpenAI
-from estilos import PERSONALIDAD_LIA
+from estilos import PERSONALIDAD_LIA  # 💋 Aquí importamos el fuego de Lia
 
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
