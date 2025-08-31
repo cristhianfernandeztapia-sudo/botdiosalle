@@ -1,7 +1,7 @@
 import os
 import requests
 from utils import gpt  # ← corregido aquí
-from estilos import PERSONALIDAD_LIA
+from utils.estilos import PERSONALIDAD_LIA  # ✅ CORRECTO
 from memoria import cargar_memoria, guardar_memoria
 from fastapi import FastAPI, Request
 
