@@ -8,7 +8,7 @@ from memoria import cargar_memoria, guardar_memoria
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Límite de historial por usuario (por token/contexto)
-MAX_HISTORIAL = 25
+MAX_HISTORIAL = 20
 
 def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA, chat_id: str = "default") -> str:
     try:
@@ -23,7 +23,7 @@ def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA, chat_
         respuesta = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=mensajes,
-            temperature=1.3
+            temperature=1.0
         )
 
         texto_generado = respuesta.choices[0].message.content.strip()
@@ -32,7 +32,7 @@ def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA, chat_
         historial.append({"role": "user", "content": texto_usuario})
         historial.append({"role": "assistant", "content": texto_generado})
 
-        # Limitar historial a los últimos 25 mensajes
+        # Limitar historial a los últimos 20 mensajes
         if len(historial) > MAX_HISTORIAL:
             historial = historial[-MAX_HISTORIAL:]
 
