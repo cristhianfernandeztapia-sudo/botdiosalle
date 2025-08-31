@@ -14,7 +14,7 @@ def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA) -> st
                 {"role": "system", "content": sistema},
                 {"role": "user", "content": texto_usuario}
             ],
-            temperature=1.4  # 🔥 Creatividad e improvisación sensual activada
+            temperature=1.0  # 🔥 Creatividad e improvisación sensual activada
         )
         return respuesta.choices[0].message.content.strip()
     except Exception as e:
