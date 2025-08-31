@@ -2,10 +2,11 @@
 
 import os
 from openai import OpenAI
+from estilos import PERSONALIDAD_LIA
 
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generar_respuesta(texto_usuario: str, sistema: str = "") -> str:
+def generar_respuesta(texto_usuario: str, sistema: str = PERSONALIDAD_LIA) -> str:
     try:
         respuesta = openai_client.chat.completions.create(
             model="gpt-4o",
