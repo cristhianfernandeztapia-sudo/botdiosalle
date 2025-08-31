@@ -3,7 +3,7 @@ import requests
 from utils import gpt  # ← corregido aquí
 from estilos import PERSONALIDAD_LIA
 from memoria import cargar_memoria, guardar_memoria
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
